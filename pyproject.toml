@@ -11,6 +11,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "fastapi-code-generator>=0.8.1",
     "ruff>=0.16.9",
     "ty>=0.0.84",
 ]
+
+[tool.ruff]
+extend-exclude = ["app/notes/generated"]

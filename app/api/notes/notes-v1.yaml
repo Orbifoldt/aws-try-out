@@ -1,0 +1,95 @@
+openapi: 3.1.0
+info:
+  title: Notes API
+  version: 1.0.0
+  description: Create and retrieve notes.
+servers:
+  - url: http://127.0.0.1:8001
+tags:
+  - name: notes
+    description: Operations on notes
+paths:
+  /notes:
+    post:
+      operationId: create_note
+      tags: [notes]
+      summary: Create a note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteCreate'
+      responses:
+        '201':
+          description: Note created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '422':
+          description: Invalid request
+    get:
+      operationId: list_notes
+      tags: [notes]
+      summary: List notes
+      responses:
+        '200':
+          description: Notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+  /notes/{note_id}:
+    get:
+      operationId: get_note
+      tags: [notes]
+      summary: Get a note
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Note found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '404':
+          description: Note not found
+        '422':
+          description: Invalid note ID
+components:
+  schemas:
+    NoteCreate:
+      type: object
+      additionalProperties: false
+      required: [title, body]
+      properties:
+        title:
+          type: string
+          maxLength: 100
+        body:
+          type: string
+          maxLength: 8000
+    Note:
+      type: object
+      additionalProperties: false
+      required: [id, title, body]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 100
+        body:
+          type: string
+          maxLength: 8000

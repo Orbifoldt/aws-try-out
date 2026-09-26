@@ -1,0 +1,62 @@
+# To change the scaffold, edit templates/main.jinja2 and regenerate.
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+from fastapi import APIRouter
+
+{{imports | replace('from typing import List', '')}}
+
+
+class NotesAPI(ABC):
+    """OpenAPI-derived router contract; implement each endpoint in a subclass."""
+
+    def __init__(self) -> None:
+        self.router = APIRouter()
+{% for operation in operations %}
+        self.router.add_api_route(
+            '{{operation.path}}',
+            self.{{operation.function_name}},
+            methods=['{{operation.type | upper}}'],
+            operation_id='{{operation.function_name}}',
+            response_model={{operation.response | replace('List[', 'list[')}},
+            status_code={{operation.status_code or 200}},
+{% for status, response in operation.responses.items() %}
+{% if status | string == (operation.status_code or 200) | string %}
+            response_description={{response.description | tojson}},
+{% endif %}
+{% endfor %}
+{% if operation.responses | length > 1 %}
+            responses={
+{% for status, response in operation.responses.items() %}
+{% if status | string != (operation.status_code or 200) | string %}
+                {{status | tojson}}: {
+                    'description': {{response.description | tojson}},
+{% for response_status, models in operation.additional_responses.items() %}
+{% if response_status | string == status | string %}
+{% for key, model in models.items() %}
+                    '{{key}}': {{model}},
+{% endfor %}
+{% endif %}
+{% endfor %}
+                },
+{% endif %}
+{% endfor %}
+            },
+{% endif %}
+{% if operation.tags %}
+            tags={{operation.tags}},
+{% endif %}
+{% if operation.summary %}
+            summary={{operation.summary | tojson}},
+{% endif %}
+        )
+{% endfor %}
+{% for operation in operations %}
+    @abstractmethod
+    async def {{operation.function_name}}(self{% if operation.snake_case_arguments %}, {{operation.snake_case_arguments}}{% endif %}) -> {{operation.return_type | replace('List[', 'list[')}}:
+        """{{operation.summary or operation.function_name}}"""
+        ...
+
+{% endfor %}
