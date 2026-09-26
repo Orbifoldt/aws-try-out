@@ -1,0 +1,20 @@
+### Create a note and save its generated ID for the GET request below
+POST {{baseUrl}}/notes/v1/notes
+Content-Type: application/json
+
+{
+  "title": "First note",
+  "body": "Created from the HTTP client."
+}
+
+> {%
+client.global.set("note_id", response.body.id);
+%}
+
+### List notes
+GET {{baseUrl}}/notes/v1/notes
+Accept: application/json
+
+### Get the note created above
+GET {{baseUrl}}/notes/v1/notes/{{note_id}}
+Accept: application/json

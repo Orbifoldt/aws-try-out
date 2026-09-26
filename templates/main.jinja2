@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import NullSession, get_session
 
 {{imports | replace('from typing import List', '')}}
 
@@ -55,7 +59,7 @@ class NotesAPI(ABC):
 {% endfor %}
 {% for operation in operations %}
     @abstractmethod
-    async def {{operation.function_name}}(self{% if operation.snake_case_arguments %}, {{operation.snake_case_arguments}}{% endif %}) -> {{operation.return_type | replace('List[', 'list[')}}:
+    async def {{operation.function_name}}(self{% if operation.snake_case_arguments %}, {{operation.snake_case_arguments}}{% endif %}, session: Annotated[AsyncSession | NullSession, Depends(get_session)]) -> {{operation.return_type | replace('List[', 'list[')}}:
         """{{operation.summary or operation.function_name}}"""
         ...
 
