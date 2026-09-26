@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 
+from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -7,29 +8,27 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from app.settings import get_settings
+from app.settings import Settings
 
 
-class NullSession:
-    """Per-request marker used when the in-memory store is enabled."""
+class DatabaseProvider(Provider):
+    """Own the connection pool and close each request's session on scope exit."""
 
+    @provide(scope=Scope.APP)
+    async def engine(self, settings: Settings) -> AsyncIterator[AsyncEngine]:
+        engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+        try:
+            yield engine
+        finally:
+            await engine.dispose()
 
-settings = get_settings()
-engine: AsyncEngine | None = None
-session_factory: async_sessionmaker[AsyncSession] | None = None
+    @provide(scope=Scope.APP)
+    def session_factory(self, engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+        return async_sessionmaker(engine, expire_on_commit=False)
 
-if not settings.use_in_memory_db:
-    engine = create_async_engine(settings.database_url, pool_pre_ping=True)
-    session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
-
-async def get_session() -> AsyncIterator[AsyncSession | NullSession]:
-    if settings.use_in_memory_db:
-        yield NullSession()
-        return
-
-    if session_factory is None:
-        raise RuntimeError("Database sessions are not configured")
-
-    async with session_factory() as session:
-        yield session
+    @provide(scope=Scope.REQUEST)
+    async def session(
+        self, session_factory: async_sessionmaker[AsyncSession]
+    ) -> AsyncIterator[AsyncSession]:
+        async with session_factory() as session:
+            yield session

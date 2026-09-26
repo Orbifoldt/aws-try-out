@@ -2,65 +2,58 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import Annotated
+from collections.abc import Awaitable, Callable
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter
 
-from app.database import NullSession, get_session
 
 {{imports | replace('from typing import List', '')}}
 
 
-class NotesAPI(ABC):
-    """OpenAPI-derived router contract; implement each endpoint in a subclass."""
-
-    def __init__(self) -> None:
-        self.router = APIRouter()
+def register_notes_routes(
+    router: APIRouter,
+    *,
 {% for operation in operations %}
-        self.router.add_api_route(
-            '{{operation.path}}',
-            self.{{operation.function_name}},
-            methods=['{{operation.type | upper}}'],
-            operation_id='{{operation.function_name}}',
-            response_model={{operation.response | replace('List[', 'list[')}},
-            status_code={{operation.status_code or 200}},
+    {{operation.function_name}}: Callable[..., Awaitable[{{operation.return_type | replace('List[', 'list[')}}]],
+{% endfor %}
+) -> None:
+    """Register every specified operation; all handlers are required."""
+{% for operation in operations %}
+    router.add_api_route(
+        '{{operation.path}}',
+        {{operation.function_name}},
+        methods=['{{operation.type | upper}}'],
+        operation_id='{{operation.function_name}}',
+        response_model={{operation.response | replace('List[', 'list[')}},
+        status_code={{operation.status_code or 200}},
 {% for status, response in operation.responses.items() %}
 {% if status | string == (operation.status_code or 200) | string %}
-            response_description={{response.description | tojson}},
+        response_description={{response.description | tojson}},
 {% endif %}
 {% endfor %}
 {% if operation.responses | length > 1 %}
-            responses={
+        responses={
 {% for status, response in operation.responses.items() %}
 {% if status | string != (operation.status_code or 200) | string %}
-                {{status | tojson}}: {
-                    'description': {{response.description | tojson}},
+            {{status | tojson}}: {
+                'description': {{response.description | tojson}},
 {% for response_status, models in operation.additional_responses.items() %}
 {% if response_status | string == status | string %}
 {% for key, model in models.items() %}
-                    '{{key}}': {{model}},
+                '{{key}}': {{model}},
 {% endfor %}
-{% endif %}
-{% endfor %}
-                },
 {% endif %}
 {% endfor %}
             },
 {% endif %}
+{% endfor %}
+        },
+{% endif %}
 {% if operation.tags %}
-            tags={{operation.tags}},
+        tags={{operation.tags}},
 {% endif %}
 {% if operation.summary %}
-            summary={{operation.summary | tojson}},
+        summary={{operation.summary | tojson}},
 {% endif %}
-        )
-{% endfor %}
-{% for operation in operations %}
-    @abstractmethod
-    async def {{operation.function_name}}(self{% if operation.snake_case_arguments %}, {{operation.snake_case_arguments}}{% endif %}, session: Annotated[AsyncSession | NullSession, Depends(get_session)]) -> {{operation.return_type | replace('List[', 'list[')}}:
-        """{{operation.summary or operation.function_name}}"""
-        ...
-
+    )
 {% endfor %}

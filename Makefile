@@ -1,10 +1,15 @@
-.PHONY: app app-generate notes-app db-up db-down db-logs notes-http
+.PHONY: app app-generate check notes-app db-up db-down db-logs notes-http
 
 app: app-generate
 	uv run uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
 
 app-generate:
 	uv run fastapi-codegen --input app/api/notes/notes-v1.yaml --output app/api/notes/generated --template-dir templates --output-model-type pydantic_v2.BaseModel --python-version 3.14 --use-annotated
+
+check:
+	#uv run python -m unittest discover -s tests -v
+	uv run ruff check .
+	uv run ty check
 
 # Local PostgreSQL; `docker compose down` keeps the named data volume.
 db-up:
