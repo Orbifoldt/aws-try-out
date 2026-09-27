@@ -1,4 +1,4 @@
-.PHONY: app app-generate check notes-app db-up db-down db-logs notes-http
+.PHONY: app app-generate check notes-app db-up db-down db-logs s3-mock-up s3-mock-down s3-mock-logs local-up notes-http
 
 app: app-generate
 	uv run uvicorn app.api.main:app --reload --host 0.0.0.0 --port 8000
@@ -20,6 +20,20 @@ db-down:
 
 db-logs:
 	docker compose logs -f postgres
+
+s3-mock-up:
+	docker compose up -d moto-init
+
+s3-mock-down:
+	docker compose stop moto
+
+s3-mock-logs:
+	docker compose logs -f moto
+
+# Start local dependencies and follow their logs.
+local-up:
+	docker compose up -d postgres moto-init
+	docker compose logs -f postgres moto moto-init
 
 # Select with HTTP_ENV=local or HTTP_ENV=deployed.
 HTTP_ENV ?= local

@@ -65,6 +65,104 @@ paths:
           description: Note not found
         '422':
           description: Invalid note ID
+  /notes/{note_id}/images:
+    post:
+      operationId: upload_note_image
+      tags: [notes]
+      summary: Upload an image to a note
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: JPEG, PNG, or WebP image, up to 5 MiB.
+                alt_text:
+                  type: string
+                  maxLength: 500
+                  description: Optional text alternative describing the image.
+      responses:
+        '201':
+          description: Image uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteImage'
+        '404':
+          description: Note not found
+        '413':
+          description: Image is too large
+        '415':
+          description: Unsupported media type; only JPEG, PNG, and WebP are accepted
+        '422':
+          description: Invalid request or note ID
+    get:
+      operationId: list_note_images
+      tags: [notes]
+      summary: List images attached to a note
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Images attached to the note
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NoteImage'
+        '404':
+          description: Note not found
+        '422':
+          description: Invalid note ID
+  /notes/{note_id}/images/{image_id}:
+    get:
+      operationId: get_note_image
+      tags: [notes]
+      summary: Download an image attached to a note
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: image_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Image bytes
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Note or image not found
+        '422':
+          description: Invalid note ID or image ID
 components:
   schemas:
     NoteCreate:
@@ -93,3 +191,30 @@ components:
         body:
           type: string
           maxLength: 8000
+    NoteImage:
+      type: object
+      additionalProperties: false
+      required: [id, name, mime_type, size_bytes, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+          description: Original uploaded filename.
+        mime_type:
+          type: string
+          enum: [image/jpeg, image/png, image/webp]
+        alt_text:
+          type: string
+          maxLength: 500
+          description: Optional text alternative describing the image.
+        size_bytes:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true

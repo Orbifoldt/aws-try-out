@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 
 {{imports | replace('from typing import List', '')}}
@@ -14,7 +14,7 @@ def register_routes(
     router: APIRouter,
     *,
 {% for operation in operations %}
-    {{operation.function_name}}: Callable[..., Awaitable[{{operation.return_type | replace('List[', 'list[')}}]],
+    {{operation.function_name}}: Callable[..., Awaitable[{% if operation.return_type == 'bytes' %}Response{% else %}{{operation.return_type | replace('List[', 'list[')}}{% endif %}]],
 {% endfor %}
 ) -> None:
     """Register every {{ info.title }} operation; all handlers are required."""
@@ -24,14 +24,41 @@ def register_routes(
         {{operation.function_name}},
         methods=['{{operation.type | upper}}'],
         operation_id='{{operation.function_name}}',
+{% if operation.response == 'bytes' %}
+        response_model=None,
+        response_class=Response,
+{% else %}
         response_model={{operation.response | replace('List[', 'list[')}},
+{% endif %}
         status_code={{operation.status_code or 200}},
 {% for status, response in operation.responses.items() %}
 {% if status | string == (operation.status_code or 200) | string %}
         response_description={{response.description | tojson}},
 {% endif %}
 {% endfor %}
-{% if operation.responses | length > 1 %}
+{% if operation.response == 'bytes' %}
+        responses={
+{% for status, response in operation.responses.items() %}
+{% if status | string == (operation.status_code or 200) | string %}
+            {{status | tojson}}: {
+                'description': {{response.description | tojson}},
+                'content': {
+{% for media_type, media in response.content.items() %}
+                    {{media_type | tojson}}: {
+                        'schema': {
+                            'type': {{media.schema.type | tojson}},
+                            'format': {{media.schema.format | tojson}},
+                        },
+                    },
+{% endfor %}
+                },
+            },
+{% else %}
+            {{status | tojson}}: {'description': {{response.description | tojson}}},
+{% endif %}
+{% endfor %}
+        },
+{% elif operation.responses | length > 1 %}
         responses={
 {% for status, response in operation.responses.items() %}
 {% if status | string != (operation.status_code or 200) | string %}

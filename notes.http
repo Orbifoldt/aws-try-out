@@ -1,4 +1,4 @@
-### Create a note and save its generated ID for the GET request below
+### Create a note and save its generated ID for the requests below
 POST {{baseUrl}}/notes/v1/notes
 Content-Type: application/json
 
@@ -18,3 +18,29 @@ Accept: application/json
 ### Get the note created above
 GET {{baseUrl}}/notes/v1/notes/{{note_id}}
 Accept: application/json
+
+### Upload an image to the note
+POST {{baseUrl}}/notes/v1/notes/{{note_id}}/images
+Content-Type: multipart/form-data; boundary=notes-image-boundary
+
+--notes-image-boundary
+Content-Disposition: form-data; name="image"; filename="sample.png"
+Content-Type: image/png
+
+< ./sample.png
+--notes-image-boundary
+Content-Disposition: form-data; name="alt_text"
+
+A sample image attached to the note.
+--notes-image-boundary--
+
+> {%
+client.global.set("image_id", response.body.id);
+%}
+
+### List images attached to the note
+GET {{baseUrl}}/notes/v1/notes/{{note_id}}/images
+Accept: application/json
+
+### Fetch the uploaded image content
+GET {{baseUrl}}/notes/v1/notes/{{note_id}}/images/{{image_id}}

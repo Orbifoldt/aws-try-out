@@ -15,6 +15,37 @@ services:
       timeout: 5s
       retries: 5
 
+  moto:
+    # Local in-memory S3 mock; its contents reset when the container restarts.
+    image: motoserver/moto:5.2.2
+    environment:
+      MOTO_PORT: "5000"
+      S3_IGNORE_SUBDOMAIN_BUCKETNAME: "true"
+    ports:
+      - "127.0.0.1:5000:5000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  moto-init:
+    image: curlimages/curl:8.13.0
+    entrypoint: ["/bin/sh"]
+    command: ["/create_moto_bucket.sh"]
+    environment:
+      S3_BUCKET_NAME: aws-try-out-images
+      S3_ENDPOINT_URL: http://moto:5000
+    volumes:
+      - ./create_moto_bucket.sh:/create_moto_bucket.sh:ro
+    depends_on:
+      moto:
+        condition: service_healthy
+
   app:
     profiles: [containerized]  # Don't start it by default
     build: .
@@ -23,9 +54,18 @@ services:
     environment:
       USE_IN_MEMORY_DB: "false"
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/aws_try_out
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+      S3_BUCKET_NAME: aws-try-out-images
+      S3_ENDPOINT_URL: http://moto:5000
     depends_on:
       postgres:
         condition: service_healthy
+      moto:
+        condition: service_healthy
+      moto-init:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:
