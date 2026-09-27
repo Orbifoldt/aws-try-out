@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, HTTPException
 
-from app.api.notes.generated.main import register_notes_routes
+from app.api.notes.generated.main import register_routes
 from app.api.notes.generated.models import Note, NoteCreate
 from app.models.note import NoteEntity
 from app.notes_storage import NotesStorage
@@ -12,7 +12,7 @@ from app.notes_storage import NotesStorage
 class NotesAPIImpl:
     def __init__(self) -> None:
         self.router = APIRouter(route_class=DishkaRoute)
-        register_notes_routes(
+        register_routes(
             self.router,
             create_note=self.create_note,
             list_notes=self.list_notes,
