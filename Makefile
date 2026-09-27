@@ -11,7 +11,7 @@ check:
 	uv run ruff check .
 	uv run ty check
 
-# Local PostgreSQL; `docker compose down` keeps the named data volume.
+# Local PostgreSQL
 db-up:
 	docker compose up -d postgres
 

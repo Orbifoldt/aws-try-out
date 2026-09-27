@@ -15,5 +15,17 @@ services:
       timeout: 5s
       retries: 5
 
+  app:
+    profiles: [containerized]  # Don't start it by default
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      USE_IN_MEMORY_DB: "false"
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/aws_try_out
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:
