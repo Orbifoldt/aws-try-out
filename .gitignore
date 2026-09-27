@@ -217,3 +217,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 /.idea/
+
+
+
+# AWS cdk
+**/cdk.out/
+**/cdk.context.json
